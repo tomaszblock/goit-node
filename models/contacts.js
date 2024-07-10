@@ -1,4 +1,4 @@
-const Contact = require('./contactModel');
+const Contact = require("./contactModel");
 
 const listContacts = async () => {
   return await Contact.find({});
@@ -9,7 +9,7 @@ const getContactById = async (contactId) => {
 };
 
 const removeContact = async (contactId) => {
-  const result = await Contact.findByIdAndRemove(contactId);
+  const result = await Contact.findByIdAndDelete(contactId);
   return result !== null;
 };
 
@@ -19,7 +19,10 @@ const addContact = async (body) => {
 };
 
 const updateContact = async (contactId, body) => {
-  return await Contact.findByIdAndUpdate(contactId, body, { new: true });
+  const updatedContact = await Contact.findByIdAndUpdate(contactId, body, {
+    new: true,
+  });
+  return updatedContact;
 };
 
 const updateStatusContact = async (contactId, body) => {
