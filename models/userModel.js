@@ -25,6 +25,6 @@ const userSchema = new Schema(
   { versionKey: false }
 );
 
-const User = model("User", userSchema);
+const User = model("user", userSchema);
 
 module.exports = User;

@@ -1,10 +1,10 @@
-require("dotenv").config();
 const express = require("express");
 const logger = require("morgan");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const contactsRouter = require("./routes/api/contacts");
 const usersRouter = require("./routes/api/users");
+require("dotenv").config();
 
 const app = express();
 
@@ -14,10 +14,8 @@ app.use(logger(formatsLogger));
 app.use(cors());
 app.use(express.json());
 
-const { DB_HOST, JWT_SECRET } = process.env;
-
 mongoose
-  .connect(DB_HOST, {
+  .connect(process.env.DB_HOST, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
