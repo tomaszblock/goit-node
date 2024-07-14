@@ -1,11 +1,10 @@
+require("dotenv").config();
 const express = require("express");
 const logger = require("morgan");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const contactsRouter = require("./routes/api/contacts");
-const dotenv = require("dotenv");
-
-dotenv.config();
+const usersRouter = require("./routes/api/users");
 
 const app = express();
 
@@ -15,7 +14,7 @@ app.use(logger(formatsLogger));
 app.use(cors());
 app.use(express.json());
 
-const DB_HOST = process.env.DB_HOST;
+const { DB_HOST, JWT_SECRET } = process.env;
 
 mongoose
   .connect(DB_HOST, {
@@ -29,6 +28,7 @@ mongoose
   });
 
 app.use("/api/contacts", contactsRouter);
+app.use("/api/users", usersRouter);
 
 app.use((req, res) => {
   res.status(404).json({ message: "Not found" });
