@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const User = require("../../models/userModel");
 const Joi = require("joi");
 const router = express.Router();
+const auth = require("../../middlewares/auth");
 
 // Schematy walidacji
 const signupSchema = Joi.object({
@@ -68,29 +69,8 @@ router.post("/login", async (req, res) => {
   });
 });
 
-// Middleware do autoryzacji
-const authenticate = async (req, res, next) => {
-  const { authorization } = req.headers;
-  if (!authorization) {
-    return res.status(401).json({ message: "Not authorized" });
-  }
-
-  const token = authorization.replace("Bearer ", "");
-  try {
-    const { id } = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(id);
-    if (!user || user.token !== token) {
-      return res.status(401).json({ message: "Not authorized" });
-    }
-    req.user = user;
-    next();
-  } catch (err) {
-    res.status(401).json({ message: "Not authorized" });
-  }
-};
-
 // Obecny użytkownik
-router.get("/current", authenticate, (req, res) => {
+router.get("/current", auth, (req, res) => {
   res.status(200).json({
     email: req.user.email,
     subscription: req.user.subscription,
@@ -98,9 +78,9 @@ router.get("/current", authenticate, (req, res) => {
 });
 
 // Wylogowanie
-router.get("/logout", authenticate, async (req, res) => {
+router.get("/logout", auth, async (req, res) => {
   await User.findByIdAndUpdate(req.user._id, { token: null });
-  res.status(204).send();
+  res.status(200).json({ message: "Successfully logged out" });
 });
 
 module.exports = router;
