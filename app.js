@@ -3,9 +3,8 @@ const logger = require("morgan");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const contactsRouter = require("./routes/api/contacts");
-const dotenv = require("dotenv");
-
-dotenv.config();
+const usersRouter = require("./routes/api/users");
+require("dotenv").config();
 
 const app = express();
 
@@ -15,10 +14,8 @@ app.use(logger(formatsLogger));
 app.use(cors());
 app.use(express.json());
 
-const DB_HOST = process.env.DB_HOST;
-
 mongoose
-  .connect(DB_HOST, {
+  .connect(process.env.DB_HOST, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
@@ -29,6 +26,7 @@ mongoose
   });
 
 app.use("/api/contacts", contactsRouter);
+app.use("/api/users", usersRouter);
 
 app.use((req, res) => {
   res.status(404).json({ message: "Not found" });
