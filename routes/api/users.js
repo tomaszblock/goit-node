@@ -25,7 +25,7 @@ const loginSchema = Joi.object({
 // Konfiguracja Multer
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, '../../tmp'));
+    cb(null, path.join(__dirname, "../../tmp"));
   },
   filename: (req, file, cb) => {
     cb(null, `${req.user._id}-${Date.now()}${path.extname(file.originalname)}`);
@@ -48,8 +48,12 @@ router.post("/signup", async (req, res) => {
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
-  const avatarURL = gravatar.url(email, { s: '250', r: 'pg', d: 'mm' });
-  const newUser = await User.create({ email, password: hashedPassword, avatarURL });
+  const avatarURL = gravatar.url(email, { s: "250", r: "pg", d: "monsterid" });
+  const newUser = await User.create({
+    email,
+    password: hashedPassword,
+    avatarURL,
+  });
 
   res.status(201).json({
     user: {
@@ -105,7 +109,7 @@ router.get("/logout", auth, async (req, res) => {
 });
 
 // Aktualizacja awatara
-router.patch("/avatars", auth, upload.single('avatar'), async (req, res) => {
+router.patch("/avatars", auth, upload.single("avatar"), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: "Missing file" });
   }
@@ -115,7 +119,11 @@ router.patch("/avatars", auth, upload.single('avatar'), async (req, res) => {
     const avatar = await jimp.read(tempPath);
     await avatar.resize(250, 250).writeAsync(tempPath);
 
-    const newAvatarPath = path.join(__dirname, '../../public/avatars', filename);
+    const newAvatarPath = path.join(
+      __dirname,
+      "../../public/avatars",
+      filename
+    );
     await fs.rename(tempPath, newAvatarPath);
 
     const avatarURL = `/public/avatars/${filename}`;
