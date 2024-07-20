@@ -8,8 +8,14 @@ const multer = require("multer");
 const jimp = require("jimp");
 const path = require("path");
 const fs = require("fs").promises;
+const { v4: uuidv4 } = require("uuid");
+const sgMail = require("@sendgrid/mail");
 const router = express.Router();
 const auth = require("../../middlewares/auth");
+require("dotenv").config();
+
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+console.log(process.env.SENDGRID_API_KEY);
 
 // Schematy walidacji
 const signupSchema = Joi.object({
@@ -48,20 +54,36 @@ router.post("/signup", async (req, res) => {
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
+  const verificationToken = uuidv4();
   const avatarURL = gravatar.url(email, { s: "250", r: "pg", d: "monsterid" });
   const newUser = await User.create({
     email,
     password: hashedPassword,
     avatarURL,
+    verificationToken,
   });
 
-  res.status(201).json({
-    user: {
-      email: newUser.email,
-      subscription: newUser.subscription,
-      avatarURL: newUser.avatarURL,
-    },
-  });
+  const verificationLink = `http://localhost:3000/api/users/verify/${verificationToken}`;
+  const msg = {
+    to: email,
+    from: "blocktomasz@gmail.com",
+    subject: "Verify your email",
+    text: `Please verify your email by clicking on the following link: ${verificationLink}`,
+    html: `<p>Please verify your email by clicking on the following link: <a href="${verificationLink}">${verificationLink}</a></p>`,
+  };
+
+  try {
+    await sgMail.send(msg);
+    res.status(201).json({
+      user: {
+        email: newUser.email,
+        subscription: newUser.subscription,
+        avatarURL: newUser.avatarURL,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
 // Logowanie
@@ -134,6 +156,65 @@ router.patch("/avatars", auth, upload.single("avatar"), async (req, res) => {
     await fs.unlink(req.file.path);
     res.status(500).json({ message: error.message });
   }
+});
+
+// Weryfikacja e-maila
+router.get("/verify/:verificationToken", async (req, res) => {
+  const { verificationToken } = req.params;
+  try {
+    const user = await User.findOne({ verificationToken });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (user.verify) {
+      return res
+        .status(400)
+        .json({ message: "Verification has already been passed" });
+    }
+
+    await User.findByIdAndUpdate(user._id, {
+      verify: true,
+      verificationToken: null,
+    });
+
+    res.status(200).json({ message: "Verification successful" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Ponowne wysłanie e-maila weryfikacyjnego
+router.post("/verify", async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ message: "missing required field email" });
+  }
+
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
+
+  if (user.verify) {
+    return res
+      .status(400)
+      .json({ message: "Verification has already been passed" });
+  }
+
+  const msg = {
+    to: email,
+    from: "blocktomasz@gmail.com",
+    subject: "Email Verification",
+    text: `Please verify your email by clicking the following link: http://localhost:3000/api/users/verify/${user.verificationToken}`,
+    html: `<strong>Please verify your email by clicking the following link: <a href="http://localhost:3000/api/users/verify/${user.verificationToken}">Verify Email</a></strong>`,
+  };
+
+  await sgMail.send(msg);
+
+  res.status(200).json({ message: "Verification email sent" });
 });
 
 module.exports = router;
